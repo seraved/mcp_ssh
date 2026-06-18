@@ -298,3 +298,60 @@ def do_edit(data: CommentedMap, path: Path) -> None:
     hosts[alias] = entry
     save_yaml(data, path)
     print(f"\nHost '{alias}' updated.")
+
+
+def do_delete(data: CommentedMap, path: Path) -> None:
+    hosts = data.get("hosts") or {}
+    if not hosts:
+        print("No hosts configured.")
+        return
+
+    alias = questionary.select("Select host to delete:", choices=list(hosts.keys())).ask()
+    if alias is None:
+        return
+
+    confirmed = questionary.confirm(f"Delete '{alias}'?", default=False).ask()
+    if not confirmed:
+        print("Cancelled.")
+        return
+
+    del hosts[alias]
+    save_yaml(data, path)
+    print(f"\nHost '{alias}' deleted.")
+
+
+def main() -> None:
+    path = resolve_config_path()
+
+    try:
+        data = load_yaml(path)
+    except Exception as e:
+        print(f"Error reading {path}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    ACTIONS = {
+        "List hosts": lambda: do_list(data),
+        "Add host": lambda: do_add(data, path),
+        "Edit host": lambda: do_edit(data, path),
+        "Delete host": lambda: do_delete(data, path),
+        "Exit": None,
+    }
+
+    while True:
+        choice = questionary.select(
+            "Action:", choices=list(ACTIONS.keys())
+        ).ask()
+
+        if choice is None or choice == "Exit":
+            break
+
+        ACTIONS[choice]()
+        print()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nBye.")
+        sys.exit(0)
