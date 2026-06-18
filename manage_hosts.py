@@ -47,9 +47,13 @@ def load_yaml(path: Path) -> CommentedMap:
 def save_yaml(data: CommentedMap, path: Path) -> None:
     y = _make_yaml()
     tmp = path.with_suffix(".yaml.tmp")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        y.dump(data, fh)
-    os.replace(tmp, path)
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            y.dump(data, fh)
+        os.replace(tmp, path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +117,7 @@ def do_list(data: CommentedMap) -> None:
         port = h.get("port", 22)
         auth = h.get("auth", {}).get("method", "?")
         shell = h.get("shell", "posix")
-        print(fmt.format(alias, f"{h['host']}:{port}", h["user"], auth, shell))
+        print(fmt.format(alias, f"{h.get('host', '?')}:{port}", h.get("user", "?"), auth, shell))
 
 
 def do_add(data: CommentedMap, path: Path) -> None:

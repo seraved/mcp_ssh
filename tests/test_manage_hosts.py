@@ -30,7 +30,7 @@ def test_load_yaml_missing_creates_empty_structure(tmp_path):
     f = tmp_path / "nonexistent.yaml"
     data = load_yaml(f)
     assert "hosts" in data
-    assert data["hosts"] == {} or data["hosts"] is None or isinstance(data["hosts"], CommentedMap)
+    assert isinstance(data["hosts"], CommentedMap)
 
 
 def test_save_yaml_roundtrip(tmp_path):
