@@ -1,0 +1,11 @@
+services:
+  ssh:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: mcp_ssh_test
+    environment:
+      - PASSWORD_ACCESS=true
+      - USER_NAME=testuser
+      - USER_PASSWORD=testpass
+      - SUDO_ACCESS=false
+    ports:
+      - "2222:2222"

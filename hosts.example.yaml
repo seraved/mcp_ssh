@@ -1,0 +1,32 @@
+hosts:
+  home-server:
+    host: 192.168.1.10
+    port: 22
+    user: admin
+    auth:
+      method: key
+      key_path: ~/.ssh/id_ed25519
+      passphrase_env: HOMESERVER_KEY_PASS   # optional; name of env var
+    shell: posix
+
+  openwrt-router:
+    host: 192.168.1.2
+    user: root
+    auth:
+      method: password
+      password_env: OPENWRT_PASS
+    shell: posix            # OpenWRT/BusyBox is a POSIX shell
+
+  cisco-switch:
+    host: 192.168.1.1
+    user: cisco
+    auth:
+      method: password
+      password_env: CISCO_PASS
+    shell: cli
+    prompt_regex: '[\w.-]+[>#]\s*$'
+
+settings:
+  idle_timeout: 600
+  command_timeout: 60
+  audit_log: ~/.mcp_ssh/audit.log
