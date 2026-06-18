@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "mcp-ssh"
+version = "0.1.0"
+description = "MCP server for running commands over persistent SSH sessions"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "mcp_ssh" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+mcp = "^1.2.0"
+asyncssh = "^2.14"
+pydantic = "^2.6"
+pyyaml = "^6.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-asyncio = "^0.23"
+
+[tool.poetry.scripts]
+mcp-ssh = "mcp_ssh.server:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = ["integration: tests that require the docker-compose SSH server"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
