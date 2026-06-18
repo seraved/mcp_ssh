@@ -162,8 +162,10 @@ def _run_sse_with_auth(host: str, port: int, auth_token: str) -> None:
 
     class BearerAuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
+            import hmac
             authorization = request.headers.get("Authorization", "")
-            if not authorization.startswith("Bearer ") or authorization[7:] != auth_token:
+            provided = authorization[7:] if authorization.startswith("Bearer ") else ""
+            if not hmac.compare_digest(provided, auth_token):
                 return Response("Unauthorized", status_code=401)
             return await call_next(request)
 
