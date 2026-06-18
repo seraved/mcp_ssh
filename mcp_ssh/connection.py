@@ -96,7 +96,29 @@ class SSHConnection:
             truncated=truncated,
         )
 
+    async def _ensure_shell(self):
+        from .shell_session import ShellSession
+        if self._shell is None:
+            process = await self._conn.create_process(
+                term_type="ansi", encoding="utf-8")
+            self._shell = ShellSession(
+                process, self.cfg.shell, self.cfg.prompt_regex,
+                self.settings.max_output_bytes)
+        return self._shell
+
+    async def run_in_shell(self, command: str, timeout: float | None = None):
+        if timeout is None:
+            timeout = self.settings.command_timeout
+        self.last_used = time.monotonic()
+        shell = await self._ensure_shell()
+        result = await shell.run(command, timeout)
+        self.last_used = time.monotonic()
+        return result
+
     async def close(self) -> None:
+        if self._shell is not None:
+            await self._shell.close()
+            self._shell = None
         if self._conn is not None:
             self._conn.close()
             await self._conn.wait_closed()
