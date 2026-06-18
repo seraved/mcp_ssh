@@ -41,7 +41,17 @@ poetry install
 
 ### Configure hosts
 
-Copy `hosts.example.yaml` and edit:
+Use the interactive manager to add, edit, or remove hosts without touching YAML by hand:
+
+```bash
+python manage_hosts.py
+# or with an explicit config path:
+MCP_SSH_CONFIG=/path/to/hosts.yaml python manage_hosts.py
+```
+
+The script provides a menu-driven terminal UI: list hosts, add, edit (current values shown as defaults), and delete with confirmation. Validates IP/hostname, port range, regex syntax, and warns if a referenced env var is not exported.
+
+Alternatively, copy `hosts.example.yaml` and edit manually:
 
 ```yaml
 hosts:
