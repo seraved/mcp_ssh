@@ -93,3 +93,22 @@ def validate_nonempty(val: str) -> bool | str:
 def warn_env_var(name: str) -> None:
     if name and name.strip() and name.strip() not in os.environ:
         print(f"\033[33mWarning: env var '{name.strip()}' not found in current environment.\033[0m")
+
+
+# ---------------------------------------------------------------------------
+# UI operations
+# ---------------------------------------------------------------------------
+
+def do_list(data: CommentedMap) -> None:
+    hosts = data.get("hosts") or {}
+    if not hosts:
+        print("No hosts configured.")
+        return
+    fmt = "{:<20} {:<24} {:<12} {:<10} {:<8}"
+    print(fmt.format("ALIAS", "HOST:PORT", "USER", "AUTH", "SHELL"))
+    print("-" * 76)
+    for alias, h in hosts.items():
+        port = h.get("port", 22)
+        auth = h.get("auth", {}).get("method", "?")
+        shell = h.get("shell", "posix")
+        print(fmt.format(alias, f"{h['host']}:{port}", h["user"], auth, shell))
