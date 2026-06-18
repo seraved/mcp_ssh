@@ -7,7 +7,7 @@ from ruamel.yaml.comments import CommentedMap
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from manage_hosts import load_yaml, save_yaml, resolve_config_path
+from manage_hosts import load_yaml, save_yaml, resolve_config_path, validate_port, validate_hostname, validate_regex, validate_nonempty
 
 
 @pytest.fixture
@@ -65,3 +65,44 @@ def test_resolve_config_path_default(monkeypatch, tmp_path, chdir):
     # resolve_config_path returns Path("hosts.yaml") relative to cwd
     result = resolve_config_path()
     assert result.name == "hosts.yaml"
+
+
+def test_validate_port_valid():
+    assert validate_port("22") is True
+    assert validate_port("65535") is True
+    assert validate_port("1") is True
+
+
+def test_validate_port_invalid():
+    assert validate_port("0") != True
+    assert validate_port("65536") != True
+    assert validate_port("abc") != True
+    assert validate_port("") != True
+
+
+def test_validate_hostname_valid():
+    assert validate_hostname("192.168.1.1") is True
+    assert validate_hostname("my-server") is True
+    assert validate_hostname("host.example.com") is True
+
+
+def test_validate_hostname_invalid():
+    assert validate_hostname("") != True
+    assert validate_hostname("   ") != True
+    assert validate_hostname("-badstart") != True
+
+
+def test_validate_regex_valid():
+    assert validate_regex(r"[\w.-]+[>#]\s*$") is True
+    assert validate_regex(r".*") is True
+
+
+def test_validate_regex_invalid():
+    assert validate_regex("[unclosed") != True
+    assert validate_regex("") != True
+
+
+def test_validate_nonempty():
+    assert validate_nonempty("hello") is True
+    assert validate_nonempty("") != True
+    assert validate_nonempty("   ") != True
