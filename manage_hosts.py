@@ -196,3 +196,105 @@ def do_add(data: CommentedMap, path: Path) -> None:
     hosts[alias] = CommentedMap(entry)
     save_yaml(data, path)
     print(f"\nHost '{alias}' added.")
+
+
+def do_edit(data: CommentedMap, path: Path) -> None:
+    hosts = data.get("hosts") or {}
+    if not hosts:
+        print("No hosts configured.")
+        return
+
+    alias = questionary.select("Select host to edit:", choices=list(hosts.keys())).ask()
+    if alias is None:
+        return
+
+    h = hosts[alias]
+    old_auth = h.get("auth", {})
+
+    host = questionary.text(
+        "Host:", default=str(h.get("host", "")), validate=validate_hostname
+    ).ask()
+    if host is None:
+        return
+
+    port = questionary.text(
+        "Port:", default=str(h.get("port", 22)), validate=validate_port
+    ).ask()
+    if port is None:
+        return
+
+    user = questionary.text(
+        "User:", default=str(h.get("user", "")), validate=validate_nonempty
+    ).ask()
+    if user is None:
+        return
+
+    current_method = old_auth.get("method", "password")
+    auth_method = questionary.select(
+        "Auth method:",
+        choices=["key", "password"],
+        default=current_method,
+    ).ask()
+    if auth_method is None:
+        return
+
+    auth: dict = {"method": auth_method}
+
+    if auth_method == "key":
+        key_path = questionary.text(
+            "Key path:",
+            default=str(old_auth.get("key_path", "~/.ssh/id_ed25519")),
+            validate=validate_nonempty,
+        ).ask()
+        if key_path is None:
+            return
+        auth["key_path"] = key_path.strip()
+
+        passphrase_env = questionary.text(
+            "Passphrase env var (leave blank if none):",
+            default=str(old_auth.get("passphrase_env", "")),
+        ).ask()
+        if passphrase_env is None:
+            return
+        if passphrase_env.strip():
+            auth["passphrase_env"] = passphrase_env.strip()
+            warn_env_var(passphrase_env)
+    else:
+        password_env = questionary.text(
+            "Password env var:",
+            default=str(old_auth.get("password_env", "")),
+            validate=validate_nonempty,
+        ).ask()
+        if password_env is None:
+            return
+        auth["password_env"] = password_env.strip()
+        warn_env_var(password_env)
+
+    current_shell = str(h.get("shell", "posix"))
+    shell = questionary.select(
+        "Shell type:", choices=["posix", "cli"], default=current_shell
+    ).ask()
+    if shell is None:
+        return
+
+    entry = CommentedMap({
+        "host": host.strip(),
+        "port": int(port),
+        "user": user.strip(),
+        "auth": auth,
+        "shell": shell,
+    })
+
+    if shell == "cli":
+        prompt_regex = questionary.text(
+            "Prompt regex:",
+            default=str(h.get("prompt_regex", "")),
+            validate=validate_regex,
+        ).ask()
+        if prompt_regex is None:
+            return
+        entry["prompt_regex"] = prompt_regex.strip()
+
+    hosts[alias] = entry
+    save_yaml(data, path)
+    print(f"\nHost '{alias}' updated.")
