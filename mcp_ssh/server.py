@@ -137,12 +137,42 @@ def main() -> None:
     audit = AuditLogger(config.settings.audit_log)
     set_state(AppState(config=config, manager=manager, audit=audit))
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
-    host = os.environ.get("MCP_HOST", "0.0.0.0")
-    port = int(os.environ.get("MCP_PORT", "8000"))
     if transport == "sse":
-        mcp.run(transport="sse", host=host, port=port)
+        auth_token = os.environ.get("MCP_AUTH_TOKEN", "")
+        if not auth_token:
+            raise SystemExit(
+                "ERROR: MCP_AUTH_TOKEN must be set when running in SSE mode. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        # Default to loopback — operator must explicitly set MCP_HOST=0.0.0.0
+        # only when a reverse proxy handles auth in front.
+        host = os.environ.get("MCP_HOST", "127.0.0.1")
+        port = int(os.environ.get("MCP_PORT", "8000"))
+        _run_sse_with_auth(host, port, auth_token)
     else:
         mcp.run()
+
+
+def _run_sse_with_auth(host: str, port: int, auth_token: str) -> None:
+    import uvicorn
+    from starlette.applications import Starlette
+    from starlette.middleware import Middleware
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import Response
+
+    class BearerAuthMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            authorization = request.headers.get("Authorization", "")
+            if not authorization.startswith("Bearer ") or authorization[7:] != auth_token:
+                return Response("Unauthorized", status_code=401)
+            return await call_next(request)
+
+    sse_app = mcp.sse_app()
+    app = Starlette(
+        routes=sse_app.routes,
+        middleware=[Middleware(BearerAuthMiddleware)],
+    )
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
