@@ -12,6 +12,8 @@ mcp = "^1.2.0"
 asyncssh = "^2.14"
 pydantic = "^2.6"
 pyyaml = "^6.0"
+questionary = "^2.0"
+ruamel-yaml = "^0.18"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
