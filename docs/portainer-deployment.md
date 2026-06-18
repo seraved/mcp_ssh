@@ -32,7 +32,15 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ## Шаг 2: Подготовь конфиг хостов
 
-Создай `/opt/mcp-ssh/config/hosts.yaml` на основе `hosts.example.yaml`:
+Для управления хостами без ручного редактирования YAML используй интерактивный скрипт (запускается на хост-машине, не внутри контейнера):
+
+```bash
+MCP_SSH_CONFIG=/opt/mcp-ssh/config/hosts.yaml python manage_hosts.py
+```
+
+Скрипт предоставляет меню: список хостов, добавление, редактирование (текущие значения подставляются по умолчанию), удаление с подтверждением.
+
+Либо создай `/opt/mcp-ssh/config/hosts.yaml` вручную на основе `hosts.example.yaml`:
 
 ```yaml
 hosts:
