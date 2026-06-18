@@ -136,7 +136,13 @@ def main() -> None:
     manager = SessionManager(config, os.environ)
     audit = AuditLogger(config.settings.audit_log)
     set_state(AppState(config=config, manager=manager, audit=audit))
-    mcp.run()
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    host = os.environ.get("MCP_HOST", "0.0.0.0")
+    port = int(os.environ.get("MCP_PORT", "8000"))
+    if transport == "sse":
+        mcp.run(transport="sse", host=host, port=port)
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":
