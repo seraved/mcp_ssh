@@ -8,3 +8,7 @@ dist/
 build/
 ~/.mcp_ssh/
 hosts.yaml
+docs/superpowers/
+.claude/
+.codegraph/
+.mcp.json

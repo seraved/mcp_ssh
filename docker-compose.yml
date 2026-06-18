@@ -1,11 +1,37 @@
 services:
-  ssh:
-    image: lscr.io/linuxserver/openssh-server:latest
-    container_name: mcp_ssh_test
-    environment:
-      - PASSWORD_ACCESS=true
-      - USER_NAME=testuser
-      - USER_PASSWORD=testpass
-      - SUDO_ACCESS=false
+  mcp-ssh:
+    image: mcp-ssh:latest
+    container_name: mcp-ssh
+    restart: unless-stopped
     ports:
-      - "2222:2222"
+      - "127.0.0.1:8000:8000"   # loopback only; set 0.0.0.0 only behind a reverse proxy
+    volumes:
+      - /opt/mcp-ssh/config:/config:ro   # hosts.yaml
+      - /opt/mcp-ssh/keys:/keys:ro       # SSH private keys (key auth hosts)
+      - /opt/mcp-ssh/data:/data          # audit.log (writable)
+    environment:
+      MCP_TRANSPORT: sse
+      MCP_HOST: "0.0.0.0"               # bind inside container; host sees only 127.0.0.1:8000
+      MCP_PORT: "8000"
+      MCP_SSH_CONFIG: /config/hosts.yaml
+      # --- Auth token (required, server refuses to start without it) ---
+      MCP_AUTH_TOKEN: "${MCP_AUTH_TOKEN}"
+      # --- SSH host credentials (names must match password_env in hosts.yaml) ---
+      # ROUTER_PASS: "${ROUTER_PASS}"
+      # CISCO_PASS: "${CISCO_PASS}"
+
+  # -----------------------------------------------------------------------
+  # Optional: nginx reverse proxy for external / TLS access
+  # Uncomment the block below when the agent is on a different machine.
+  # -----------------------------------------------------------------------
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: mcp-ssh-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8443:443"
+  #   volumes:
+  #     - /opt/mcp-ssh/nginx.conf:/etc/nginx/conf.d/mcp.conf:ro
+  #     - /opt/mcp-ssh/certs:/etc/ssl/certs:ro
+  #   depends_on:
+  #     - mcp-ssh
