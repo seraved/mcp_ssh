@@ -1,17 +1,39 @@
 from __future__ import annotations
 
+import asyncio
 import os
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
 from mcp.server.fastmcp import FastMCP
 
 from .audit import AuditLogger
 from .config import default_config_path, load_config
+from .errors import MCPSSHError
 from .models import AppConfig, BlockedResult, ShellType
 from .safety import classify_command
 from .session_manager import SessionManager
 
-mcp = FastMCP("mcp-ssh")
+
+async def _reap_loop(manager: SessionManager) -> None:
+    while True:
+        await asyncio.sleep(60)
+        await manager.reap_idle()
+
+
+@asynccontextmanager
+async def _lifespan(server):
+    state = _get_state()
+    task = asyncio.create_task(_reap_loop(state.manager))
+    try:
+        yield
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await state.manager.close_all()
+
+
+mcp = FastMCP("mcp-ssh", lifespan=_lifespan)
 
 
 @dataclass
@@ -49,12 +71,15 @@ async def _execute(host_name, command, tool_name, confirm_dangerous, interactive
 
     state.audit.log(host=host_name, tool=tool_name, command=command,
                     decision="allowed")
-    conn = await state.manager.get(host_name)
-    use_shell = interactive or conn.cfg.shell is ShellType.cli
-    if use_shell:
-        result = await conn.run_in_shell(command)
-    else:
-        result = await conn.run_exec(command)
+    try:
+        conn = await state.manager.get(host_name)
+        use_shell = interactive or conn.cfg.shell is ShellType.cli
+        if use_shell:
+            result = await conn.run_in_shell(command)
+        else:
+            result = await conn.run_exec(command)
+    except MCPSSHError as exc:
+        return {"error": str(exc), "type": type(exc).__name__}
     state.audit.log(host=host_name, tool=tool_name, command=command,
                     decision="executed", exit_code=result.exit_code,
                     timed_out=result.timed_out)

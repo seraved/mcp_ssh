@@ -1,6 +1,7 @@
 import pytest
 
 from mcp_ssh import server
+from mcp_ssh.errors import ConnectionFailedError, HostNotFoundError
 from mcp_ssh.models import (
     AppConfig, AuthConfig, CommandResult, HostConfig, Settings, ShellType,
 )
@@ -72,3 +73,44 @@ async def test_ssh_shell_uses_shell(tmp_path):
     out = await server.ssh_shell("h1", "cd /tmp")
     assert out["output"] == "shell:cd /tmp"
     assert conn.shell_calls == ["cd /tmp"]
+
+
+async def test_mcpssherror_returns_structured_response(tmp_path):
+    """MCPSSHError subclasses must not escape as raw exceptions (I1)."""
+    conn = FakeConn()
+    cfg = AppConfig(hosts={"h1": conn.cfg}, settings=Settings())
+    from mcp_ssh.audit import AuditLogger
+
+    class ErrorManager:
+        async def get(self, host_name):
+            raise ConnectionFailedError("Connection refused")
+
+    state = server.AppState(
+        config=cfg,
+        manager=ErrorManager(),
+        audit=AuditLogger(str(tmp_path / "audit.log")),
+    )
+    server.set_state(state)
+    out = await server.ssh_run("h1", "ls")
+    assert "error" in out
+    assert out["type"] == "ConnectionFailedError"
+    assert "Connection refused" in out["error"]
+
+
+async def test_host_not_found_returns_structured_response(tmp_path):
+    """HostNotFoundError (MCPSSHError subclass) must return a structured dict (I1)."""
+    conn = FakeConn()
+    cfg = AppConfig(hosts={"h1": conn.cfg}, settings=Settings())
+    from mcp_ssh.audit import AuditLogger
+    from mcp_ssh.session_manager import SessionManager
+
+    # Use the real SessionManager so that requesting an unknown host raises HostNotFoundError
+    state = server.AppState(
+        config=cfg,
+        manager=SessionManager(cfg, {}),
+        audit=AuditLogger(str(tmp_path / "audit.log")),
+    )
+    server.set_state(state)
+    out = await server.ssh_run("missing_host", "ls")
+    assert "error" in out
+    assert out["type"] == "HostNotFoundError"

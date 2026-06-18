@@ -26,7 +26,9 @@ class ShellSession:
     async def _drain(self) -> None:
         try:
             while True:
-                await asyncio.wait_for(self._proc.stdout.read(65536), timeout=0.1)
+                chunk = await asyncio.wait_for(self._proc.stdout.read(65536), timeout=0.1)
+                if chunk == "":
+                    return  # EOF — connection dropped
         except asyncio.TimeoutError:
             return
 
@@ -57,6 +59,15 @@ class ShellSession:
                     self._proc.stdout.read(65536), timeout=remaining)
             except asyncio.TimeoutError:
                 continue
+            if chunk == "":
+                # EOF — remote end dropped the connection
+                text, truncated = truncate_output(buffer, self._max_output_bytes)
+                return CommandResult(
+                    output=text, exit_code=None,
+                    duration=time.monotonic() - start, truncated=truncated,
+                    timed_out=False,
+                    hint="Remote channel closed unexpectedly (EOF). Connection may have dropped.",
+                )
             buffer += chunk
 
             if marker is not None:
