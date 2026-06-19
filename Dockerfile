@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # Run as non-root
-RUN useradd -r -u 1000 -s /sbin/nologin mcpssh
+RUN useradd -r -u 1000 -s /bin/sh mcpssh
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt uvicorn starlette
 
 COPY mcp_ssh/ ./mcp_ssh/
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md manage_hosts.py ./
 
 RUN pip install --no-cache-dir -e . --no-deps
 
@@ -27,6 +27,7 @@ ENV MCP_TRANSPORT=sse
 ENV MCP_HOST=127.0.0.1
 ENV MCP_PORT=8000
 ENV MCP_SSH_CONFIG=/config/hosts.yaml
+ENV MCP_AUDIT_LOG=/data/audit.log
 
 # Do NOT publish this port without a reverse proxy + auth in front.
 EXPOSE 8000
