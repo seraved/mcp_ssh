@@ -33,7 +33,7 @@ async def _lifespan(server):
         await state.manager.close_all()
 
 
-mcp = FastMCP("mcp-ssh", lifespan=_lifespan)
+mcp = FastMCP("mcp-ssh", lifespan=_lifespan, host=os.getenv("MCP_HOST", "127.0.0.1"))
 
 
 @dataclass
