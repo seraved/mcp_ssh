@@ -47,7 +47,7 @@ class Settings(BaseModel):
     command_timeout: int = 60
     keepalive_interval: int = 30
     max_output_bytes: int = 1048576
-    host_key_checking: str = "strict"
+    host_key_checking: str = "off"
     audit_log: str = "~/.mcp_ssh/audit.log"
     deny_patterns: list[str] = Field(default_factory=lambda: list(DEFAULT_DENY_PATTERNS))
 
