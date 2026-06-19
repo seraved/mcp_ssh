@@ -139,18 +139,21 @@ def main() -> None:
     audit = AuditLogger(config.settings.audit_log)
     set_state(AppState(config=config, manager=manager, audit=audit))
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
-    if transport == "sse":
+    if transport in ("sse", "http"):
         auth_token = os.environ.get("MCP_AUTH_TOKEN", "")
         if not auth_token:
             raise SystemExit(
-                "ERROR: MCP_AUTH_TOKEN must be set when running in SSE mode. "
+                "ERROR: MCP_AUTH_TOKEN must be set when running in SSE/HTTP mode. "
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
         # Default to loopback — operator must explicitly set MCP_HOST=0.0.0.0
         # only when a reverse proxy handles auth in front.
         host = os.environ.get("MCP_HOST", "127.0.0.1")
         port = int(os.environ.get("MCP_PORT", "8000"))
-        _run_sse_with_auth(host, port, auth_token)
+        if transport == "http":
+            _run_http_with_auth(host, port, auth_token)
+        else:
+            _run_sse_with_auth(host, port, auth_token)
     else:
         mcp.run()
 
@@ -177,6 +180,25 @@ def _run_sse_with_auth(host: str, port: int, auth_token: str) -> None:
         middleware=[Middleware(BearerAuthMiddleware)],
     )
     uvicorn.run(app, host=host, port=port)
+
+
+def _run_http_with_auth(host: str, port: int, auth_token: str) -> None:
+    import uvicorn
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import Response
+
+    class BearerAuthMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            import hmac
+            authorization = request.headers.get("Authorization", "")
+            provided = authorization[7:] if authorization.startswith("Bearer ") else ""
+            if not hmac.compare_digest(provided, auth_token):
+                return Response("Unauthorized", status_code=401)
+            return await call_next(request)
+
+    http_app = mcp.streamable_http_app()
+    http_app.add_middleware(BearerAuthMiddleware)
+    uvicorn.run(http_app, host=host, port=port)
 
 
 if __name__ == "__main__":
