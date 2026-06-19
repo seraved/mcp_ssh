@@ -5,14 +5,14 @@ services:
     container_name: mcp-ssh
     restart: unless-stopped
     ports:
-      - "0.0.0.0:${MCP_PORT:-8000}:${MCP_PORT:-8000}"
+      - "${MCP_BIND:-127.0.0.1}:${MCP_PORT:-8000}:${MCP_PORT:-8000}"
     volumes:
       - config:/config                   # hosts.yaml (named volume, writable)
       - /opt/mcp-ssh/keys:/keys:ro       # SSH private keys (key auth hosts)
       - /opt/mcp-ssh/data:/data          # audit.log (writable)
     environment:
       MCP_TRANSPORT: sse
-      MCP_HOST: "0.0.0.0"               # bind inside container; host sees only 127.0.0.1:8000
+      MCP_HOST: "0.0.0.0"               # bind inside container; host bind controlled by MCP_BIND (default 127.0.0.1)
       MCP_PORT: "${MCP_PORT:-8000}"
       MCP_SSH_CONFIG: /config/hosts.yaml
       # --- Auth token (required, server refuses to start without it) ---
