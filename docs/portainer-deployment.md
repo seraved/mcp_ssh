@@ -30,17 +30,25 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ---
 
-## Шаг 2: Подготовь конфиг хостов
+## Шаг 2: Первый запуск — наполни конфиг хостов
 
-Для управления хостами без ручного редактирования YAML используй интерактивный скрипт (запускается на хост-машине, не внутри контейнера):
+`hosts.yaml` уже встроен в образ с пустой секцией `hosts: {}`. Сервер стартует сразу — без ручного создания файлов.
+
+После деплоя стека зайди в консоль контейнера в Portainer:
+
+**Containers → mcp-ssh → Console → `/bin/sh` → Connect**
+
+Затем запусти интерактивный скрипт:
 
 ```bash
-MCP_SSH_CONFIG=/opt/mcp-ssh/config/hosts.yaml python manage_hosts.py
+python manage_hosts.py
 ```
 
-Скрипт предоставляет меню: список хостов, добавление, редактирование (текущие значения подставляются по умолчанию), удаление с подтверждением.
+Скрипт предоставляет меню: список хостов, добавление, редактирование, удаление с подтверждением. Файл сохраняется в том `config` и переживает рестарты.
 
-Либо создай `/opt/mcp-ssh/config/hosts.yaml` вручную на основе `hosts.example.yaml`:
+**После добавления хостов перезапусти контейнер** (Portainer → Containers → mcp-ssh → Restart) — сервер перечитывает конфиг при старте.
+
+Если предпочитаешь редактировать YAML вручную — ориентируйся на `hosts.example.yaml` в репозитории:
 
 ```yaml
 hosts:
@@ -114,7 +122,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"   # только loopback хоста
     volumes:
-      - /opt/mcp-ssh/config:/config:ro    # hosts.yaml
+      - config:/config                    # hosts.yaml (именованный том)
       - /opt/mcp-ssh/keys:/keys:ro        # SSH-ключи (если используешь key auth)
       - /opt/mcp-ssh/data:/data           # audit.log
     environment:
@@ -126,6 +134,9 @@ services:
       # Пароли для SSH-хостов (имена берутся из password_env в hosts.yaml):
       ROUTER_PASS: "пароль_роутера"
       CISCO_PASS: "пароль_коммутатора"
+
+volumes:
+  config:
 ```
 
 > **Секреты лучше хранить в Portainer Secrets**, а не прямо в стеке.
