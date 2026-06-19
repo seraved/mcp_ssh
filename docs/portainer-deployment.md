@@ -141,6 +141,27 @@ volumes:
 
 > **Секреты лучше хранить в Portainer Secrets**, а не прямо в стеке.
 
+### SSH-пароли хостов — обязательный шаг
+
+Каждый хост в `hosts.yaml` с `password_env: FOO_PASS` требует переменную `FOO_PASS` в окружении контейнера.
+
+**Два места, где нужно прописать:**
+
+1. `docker-compose.yml` — передать переменную в контейнер:
+   ```yaml
+   environment:
+     SVEN_PASS: "${SVEN_PASS}"
+     MAIN_PASS: "${MAIN_PASS}"
+   ```
+
+2. Portainer → Stacks → твой стек → **Environment variables** → добавить реальные значения:
+   ```
+   SVEN_PASS = пароль_хоста_sven
+   MAIN_PASS = пароль_хоста_main
+   ```
+
+Без шага 2 контейнер упадёт с `MissingEnvError` при старте, даже если `docker-compose.yml` правильный.
+
 ---
 
 ## Шаг 5 (опционально): nginx для доступа извне
@@ -217,7 +238,7 @@ server {
 
 ### Claude Code
 
-`.claude/settings.json` проекта:
+**Глобально** (все проекты) — `~/.claude/settings.json`:
 
 ```json
 {
@@ -231,6 +252,31 @@ server {
     }
   }
 }
+```
+
+**Уровень проекта** — `.claude/settings.json` в корне репозитория:
+
+```json
+{
+  "mcpServers": {
+    "mcp-ssh": {
+      "type": "sse",
+      "url": "http://192.168.1.100:8000/sse",
+      "headers": {
+        "Authorization": "Bearer a3f8c2d1e4b7a9f0..."
+      }
+    }
+  }
+}
+```
+
+Или добавить через CLI:
+
+```bash
+claude mcp add mcp-ssh \
+  --type sse \
+  --url "http://192.168.1.100:8000/sse" \
+  --header "Authorization: Bearer a3f8c2d1e4b7a9f0..."
 ```
 
 ---
