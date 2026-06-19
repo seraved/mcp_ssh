@@ -9,12 +9,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt uvicorn starlette
 
 COPY mcp_ssh/ ./mcp_ssh/
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 
 RUN pip install --no-cache-dir -e . --no-deps
 
 # Directories for config, keys, audit log
-RUN mkdir -p /config /keys /data && chown -R mcpssh:mcpssh /data
+RUN mkdir -p /config /keys /data && \
+    echo 'hosts: {}' > /config/hosts.yaml && \
+    chown -R mcpssh:mcpssh /config /data
 
 USER mcpssh
 

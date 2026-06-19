@@ -1,5 +1,6 @@
 services:
   mcp-ssh:
+    build: .
     image: mcp-ssh:latest
     container_name: mcp-ssh
     restart: unless-stopped
