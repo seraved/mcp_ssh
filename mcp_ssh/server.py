@@ -133,6 +133,8 @@ async def ssh_disconnect(host_name: str) -> dict:
 
 def main() -> None:
     config = load_config(default_config_path(), os.environ)
+    if audit_log_env := os.environ.get("MCP_AUDIT_LOG"):
+        config.settings.audit_log = audit_log_env
     manager = SessionManager(config, os.environ)
     audit = AuditLogger(config.settings.audit_log)
     set_state(AppState(config=config, manager=manager, audit=audit))
