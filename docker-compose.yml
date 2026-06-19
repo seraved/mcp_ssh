@@ -7,7 +7,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"   # loopback only; set 0.0.0.0 only behind a reverse proxy
     volumes:
-      - /opt/mcp-ssh/config:/config:ro   # hosts.yaml
+      - config:/config                   # hosts.yaml (named volume, writable)
       - /opt/mcp-ssh/keys:/keys:ro       # SSH private keys (key auth hosts)
       - /opt/mcp-ssh/data:/data          # audit.log (writable)
     environment:
@@ -36,3 +36,6 @@ services:
   #     - /opt/mcp-ssh/certs:/etc/ssl/certs:ro
   #   depends_on:
   #     - mcp-ssh
+
+volumes:
+  config:
