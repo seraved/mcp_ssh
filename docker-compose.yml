@@ -20,6 +20,8 @@ services:
       # --- SSH host credentials (names must match password_env in hosts.yaml) ---
       # ROUTER_PASS: "${ROUTER_PASS}"
       # CISCO_PASS: "${CISCO_PASS}"
+      SVEN_PASS: "${SVEN_PASS}"
+      MAIN_PASS: "${MAIN_PASS}"
 
   # -----------------------------------------------------------------------
   # Optional: nginx reverse proxy for external / TLS access
