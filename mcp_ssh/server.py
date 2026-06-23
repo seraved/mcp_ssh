@@ -22,6 +22,34 @@ async def _reap_loop(manager: SessionManager) -> None:
         await manager.reap_idle()
 
 
+async def _config_reload_loop(path: str, interval: int = 5) -> None:
+    mtime = os.path.getmtime(path)
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            new_mtime = os.path.getmtime(path)
+            if new_mtime == mtime:
+                continue
+            new_config = load_config(path)
+            state = _get_state()
+            old_hosts = set(state.config.hosts)
+            new_hosts = set(new_config.hosts)
+            state.config = new_config
+            state.manager._config = new_config
+            mtime = new_mtime
+            parts = []
+            added = new_hosts - old_hosts
+            removed = old_hosts - new_hosts
+            if added:
+                parts.append(f"+{','.join(sorted(added))}")
+            if removed:
+                parts.append(f"-{','.join(sorted(removed))}")
+            delta = " ".join(parts) or "no host changes"
+            print(f"[mcp-ssh] config reloaded: {delta}", flush=True, file=sys.stderr)
+        except Exception as exc:
+            print(f"[mcp-ssh] config reload failed: {exc}", flush=True, file=sys.stderr)
+
+
 @asynccontextmanager
 async def _lifespan(server):
     state = _get_state()
