@@ -38,6 +38,8 @@ def _state(tmp_path, conn):
         config=cfg,
         manager=FakeManager(conn),
         audit=AuditLogger(str(tmp_path / "audit.log")),
+        config_path="/path/hosts.yaml",
+        reload_interval=5,
     )
     server.set_state(state)
     return state
@@ -89,6 +91,8 @@ async def test_mcpssherror_returns_structured_response(tmp_path):
         config=cfg,
         manager=ErrorManager(),
         audit=AuditLogger(str(tmp_path / "audit.log")),
+        config_path="/path/hosts.yaml",
+        reload_interval=5,
     )
     server.set_state(state)
     out = await server.ssh_run("h1", "ls")
@@ -109,6 +113,8 @@ async def test_host_not_found_returns_structured_response(tmp_path):
         config=cfg,
         manager=SessionManager(cfg, {}),
         audit=AuditLogger(str(tmp_path / "audit.log")),
+        config_path="/path/hosts.yaml",
+        reload_interval=5,
     )
     server.set_state(state)
     out = await server.ssh_run("missing_host", "ls")

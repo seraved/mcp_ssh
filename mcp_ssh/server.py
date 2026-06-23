@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
@@ -41,6 +42,8 @@ class AppState:
     config: AppConfig
     manager: object
     audit: AuditLogger
+    config_path: str
+    reload_interval: int
 
 
 _state: AppState | None = None
@@ -132,12 +135,20 @@ async def ssh_disconnect(host_name: str) -> dict:
 
 
 def main() -> None:
-    config = load_config(default_config_path(), os.environ)
+    config_path = default_config_path()
+    config = load_config(config_path, os.environ)
     if audit_log_env := os.environ.get("MCP_AUDIT_LOG"):
         config.settings.audit_log = audit_log_env
+    reload_interval = int(os.environ.get("MCP_RELOAD_INTERVAL", "5"))
     manager = SessionManager(config, os.environ)
     audit = AuditLogger(config.settings.audit_log)
-    set_state(AppState(config=config, manager=manager, audit=audit))
+    set_state(AppState(
+        config=config,
+        manager=manager,
+        audit=audit,
+        config_path=config_path,
+        reload_interval=reload_interval,
+    ))
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport in ("sse", "http"):
         auth_token = os.environ.get("MCP_AUTH_TOKEN", "")
