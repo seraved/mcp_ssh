@@ -53,12 +53,16 @@ async def _config_reload_loop(path: str, interval: int = 5) -> None:
 @asynccontextmanager
 async def _lifespan(server):
     state = _get_state()
-    task = asyncio.create_task(_reap_loop(state.manager))
+    reap_task = asyncio.create_task(_reap_loop(state.manager))
+    reload_task = asyncio.create_task(
+        _config_reload_loop(state.config_path, state.reload_interval)
+    )
     try:
         yield
     finally:
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
+        reap_task.cancel()
+        reload_task.cancel()
+        await asyncio.gather(reap_task, reload_task, return_exceptions=True)
         await state.manager.close_all()
 
 
