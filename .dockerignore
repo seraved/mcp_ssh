@@ -3,18 +3,13 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-*.pyw
-.Python
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
 *.egg-info/
 dist/
 build/
-*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
-coverage.xml
 htmlcov/
 
 # Env / secrets
@@ -22,19 +17,21 @@ htmlcov/
 .env.*
 hosts.yaml
 
-# Tools
+# Dev tools
+.git/
+.gitignore
 .claude/
 .codegraph/
 .mcp.json
 .omc/
 .superpowers/
-docs/superpowers/
-
-# Runtime
-~/.mcp_ssh/
-*.log
-audit.jsonl
+docs/
+tests/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+docker-compose*.yml
+Dockerfile*
