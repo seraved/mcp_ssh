@@ -28,6 +28,7 @@ hosts.yaml
 .mcp.json
 .omc/
 .superpowers/
+artefacts/
 docs/superpowers/
 
 # Runtime

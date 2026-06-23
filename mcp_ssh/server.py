@@ -12,7 +12,7 @@ from .audit import AuditLogger
 from .config import default_config_path, load_config
 from .errors import MCPSSHError
 from .models import AppConfig, BlockedResult, ShellType
-from .safety import classify_command
+from .safety import evaluate_policy
 from .session_manager import SessionManager
 
 
@@ -94,15 +94,23 @@ def _get_state() -> AppState:
 
 async def _execute(host_name, command, tool_name, confirm_dangerous, interactive):
     state = _get_state()
-    decision = classify_command(command, state.config.settings.deny_patterns)
-    if decision.dangerous and not confirm_dangerous:
-        state.audit.log(host=host_name, tool=tool_name, command=command,
-                        decision="blocked_pending_confirm")
-        return BlockedResult(
-            reason=f"Command matches a dangerous pattern: '{decision.matched_pattern}'",
-            matched_pattern=decision.matched_pattern,
-            hint="Re-call with confirm_dangerous=true if this is intentional.",
-        ).model_dump()
+    host_cfg = state.config.hosts.get(host_name)
+    policy = evaluate_policy(
+        host_name, host_cfg, tool_name, command, state.config.settings.deny_patterns
+    )
+    if not policy.allowed:
+        if policy.bypassable and confirm_dangerous:
+            pass  # unrestricted mode — caller explicitly confirmed
+        else:
+            state.audit.log(
+                host=host_name, tool=tool_name, command=command,
+                decision="blocked", reason=policy.reason,
+            )
+            return BlockedResult(
+                reason=policy.reason or "Blocked by security policy.",
+                matched_pattern=policy.matched_pattern,
+                hint="Use confirm_dangerous=true in unrestricted mode, or change the host mode in config.",
+            ).model_dump()
 
     state.audit.log(host=host_name, tool=tool_name, command=command,
                     decision="allowed")

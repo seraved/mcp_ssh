@@ -25,6 +25,12 @@ class ShellType(str, Enum):
     cli = "cli"
 
 
+class PolicyMode(str, Enum):
+    unrestricted = "unrestricted"
+    readonly = "readonly"
+    restricted = "restricted"
+
+
 class AuthConfig(BaseModel):
     method: AuthMethod
     key_path: str | None = None
@@ -40,6 +46,9 @@ class HostConfig(BaseModel):
     shell: ShellType = ShellType.posix
     prompt_regex: str | None = None
     host_key_checking: str | None = None  # override of Settings.host_key_checking
+    mode: PolicyMode = PolicyMode.unrestricted
+    allow_patterns: list[str] = Field(default_factory=list)
+    deny_patterns: list[str] = Field(default_factory=list)
 
 
 class Settings(BaseModel):
@@ -70,5 +79,5 @@ class CommandResult(BaseModel):
 class BlockedResult(BaseModel):
     blocked: bool = True
     reason: str
-    matched_pattern: str
+    matched_pattern: str | None = None
     hint: str
